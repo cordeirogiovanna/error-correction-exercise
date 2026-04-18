@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Error Correction Exercise</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; min-height: 100vh; padding: 0 0 3rem; }
+  .gjt-header { background: #0B1825; padding: 2rem 2rem 1.5rem; border-bottom: 2px solid #B84018; }
+  .gjt-header h1 { font-family: 'Cormorant Garamond', serif; color: #C8913A; font-size: 22px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 4px; }
+  .gjt-header p { color: #E8B86D; font-size: 13px; opacity: 0.85; }
+  .gjt-name-section { background: #112030; padding: 1.25rem 2rem; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .gjt-name-section label { color: #E8B86D; font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .gjt-name-section input { background: #1E3A50; border: 1px solid #1E3A50; border-radius: 6px; color: #F5F0E8; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 7px 12px; flex: 1; min-width: 200px; outline: none; transition: border-color 0.2s; }
+  .gjt-name-section input:focus { border-color: #B84018; }
+  .gjt-name-section input::placeholder { color: #D0DDE8; opacity: 0.5; }
+  .gjt-instructions { background: #D0DDE8; border-left: 3px solid #1E3A50; margin: 1.5rem 2rem 0; padding: 1rem 1.25rem; border-radius: 0 6px 6px 0; }
+  .gjt-instructions p { color: #0B1825; font-size: 13.5px; line-height: 1.65; }
+  .gjt-instructions strong { color: #B84018; font-weight: 500; }
+  .gjt-items { padding: 1.5rem 2rem 0; display: flex; flex-direction: column; gap: 10px; }
+  .gjt-item { background: #ffffff; border: 1.5px solid #C8B89A; border-radius: 8px; overflow: hidden; transition: border-color 0.2s; }
+  .gjt-item.judged-correct { border-color: #1E3A50; background: #f0f5f8; }
+  .gjt-item.judged-incorrect { border-color: #B84018; background: #fdf5f2; }
+  .gjt-item-top { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+  .gjt-num { background: #112030; color: #E8B86D; font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 600; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .gjt-sentence { color: #3A3530; font-size: 14.5px; line-height: 1.5; flex: 1; }
+  .gjt-buttons { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
+  .gjt-correction { display: none; padding: 0 14px 12px 52px; gap: 8px; flex-direction: column; }
+  .gjt-correction.visible { display: flex; }
+  .gjt-correction input[type="text"] { background: #F5F0E8; border: 1px solid #C8B89A; border-radius: 5px; color: #3A3530; font-family: 'DM Sans', sans-serif; font-size: 13.5px; padding: 7px 10px; outline: none; transition: border-color 0.2s; width: 100%; }
+  .gjt-correction input:focus { border-color: #B84018; }
+  .gjt-correction input:disabled { opacity: 0.45; background: #D4C9B8; cursor: not-allowed; }
+  .gjt-dontknow { display: flex; align-items: center; gap: 7px; cursor: pointer; width: fit-content; }
+  .gjt-dontknow input[type="checkbox"] { accent-color: #B84018; width: 14px; height: 14px; cursor: pointer; }
+  .gjt-dontknow span { color: #3A3530; font-size: 12.5px; opacity: 0.75; }
+  .gjt-footer { margin: 2rem 2rem 0; display: flex; gap: 10px; flex-wrap: wrap; }
+  .gjt-progress { background: #D0DDE8; border-radius: 6px; padding: 10px 16px; flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px; }
+  .gjt-progress-bar { flex: 1; height: 4px; background: #b0c0cc; border-radius: 2px; overflow: hidden; }
+  .gjt-progress-fill { height: 100%; background: #B84018; border-radius: 2px; transition: width 0.3s; width: 0%; }
+  .gjt-progress-text { color: #0B1825; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .gjt-submit-btn { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 500; padding: 10px 22px; border-radius: 6px; cursor: pointer; background: #0B1825; border: none; color: #C8913A; transition: opacity 0.15s; }
+  .gjt-submit-btn:hover { opacity: 0.85; }
+  .gjt-summary { display: none; margin: 1.5rem 2rem 0; background: #0B1825; border-radius: 8px; overflow: hidden; }
+  .gjt-summary.visible { display: block; }
+  .gjt-summary-header { padding: 1rem 1.25rem; border-bottom: 1px solid #1E3A50; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .gjt-summary-header h2 { font-family: 'Cormorant Garamond', serif; color: #C8913A; font-size: 17px; font-weight: 600; }
+  .gjt-summary-stats { display: flex; gap: 16px; }
+  .gjt-stat { text-align: center; }
+  .gjt-stat-val { display: block; font-size: 18px; font-weight: 500; font-family: 'Cormorant Garamond', serif; }
+  .gjt-stat-val.correct { color: #E8B86D; }
+  .gjt-stat-val.incorrect { color: #B84018; }
+  .gjt-stat-val.dontknow { color: #D0DDE8; }
+  .gjt-stat-lbl { font-size: 11px; color: #D0DDE8; opacity: 0.7; }
+  .gjt-summary-rows { padding: 0.75rem 1.25rem 1rem; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+  .gjt-summary-row { display: flex; gap: 10px; font-size: 13px; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid #1E3A50; }
+  .gjt-summary-row:last-child { border-bottom: none; }
+  .gjt-sum-num { color: #E8B86D; font-family: 'Cormorant Garamond', serif; font-size: 13px; min-width: 22px; font-weight: 600; padding-top: 1px; }
+  .gjt-sum-orig { color: #D0DDE8; opacity: 0.75; flex: 1; }
+  .gjt-sum-verdict { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .gjt-sum-verdict.correct { background: #1E3A50; color: #E8B86D; }
+  .gjt-sum-verdict.incorrect { background: #B84018; color: #F5F0E8; }
+  .gjt-sum-correction { font-size: 12.5px; color: #F5F0E8; font-style: italic; padding-top: 3px; }
+  .gjt-sum-dontknow { font-size: 12px; color: #D0DDE8; opacity: 0.6; padding-top: 3px; }
+  .gjt-sum-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; min-width: 80px; }
+  .gjt-export-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 9px 20px; border-radius: 6px; cursor: pointer; background: #B84018; border: none; color: #F5F0E8; margin: 0.75rem 1.25rem 1rem; display: none; transition: opacity 0.15s; }
+  .gjt-export-btn:hover { opacity: 0.85; }
+  .gjt-export-btn.visible { display: inline-block; }
+  .gjt-error-msg { display: none; color: #B84018; font-size: 12.5px; margin: 0.5rem 2rem 0; font-weight: 500; }
+</style>
+</head>
+<body>
+  <div class="gjt-header">
+    <h1>Error Correction Exercise</h1>
+    <p>English Verb Structures</p>
+  </div>
+  <div class="gjt-name-section">
+    <label for="student-name">Student's name:</label>
+    <input type="text" id="student-name" placeholder="Type your full name here">
+  </div>
+  <div class="gjt-instructions">
+    <p>Take a look at the sentences below and decide which ones are incorrect, and correct them.<br>
+    <strong>Note:</strong> We are interested in correcting the structure regarding the verb — you do not need to worry about other parts of the sentence.</p>
+  </div>
+  <div class="gjt-items" id="items-container"></div>
+  <p class="gjt-error-msg" id="error-msg"></p>
+  <div class="gjt-footer">
+    <div class="gjt-progress">
+      <div class="gjt-progress-bar"><div class="gjt-progress-fill" id="progress-fill"></div></div>
+      <span class="gjt-progress-text" id="progress-text">0 / 40</span>
+    </div>
+    <button class="gjt-submit-btn" id="submit-btn">Ver resumo</button>
+  </div>
+  <div class="gjt-summary" id="summary">
+    <div class="gjt-summary-header">
+      <h2>Resumo das respostas</h2>
+      <div class="gjt-summary-stats">
+        <div class="gjt-stat"><span class="gjt-stat-val correct" id="stat-correct">0</span><span class="gjt-stat-lbl">corretas</span></div>
+        <div class="gjt-stat"><span class="gjt-stat-val incorrect" id="stat-incorrect">0</span><span class="gjt-stat-lbl">incorretas</span></div>
+        <div class="gjt-stat"><span class="gjt-stat-val dontknow" id="stat-dontknow">0</span><span class="gjt-stat-lbl">não sei</span></div>
+      </div>
+    </div>
+    <div class="gjt-summary-rows" id="summary-rows"></div>
+  </div>
+  <button class="gjt-export-btn" id="export-btn">Exportar como PDF</button>
+
+<script>
+const sentences = [
+  "We are near the gallery?","We not did like the film.","John and Paul are my friends.",
+  "Instant coffee are awful.","Rachel get up at 7 o'clock.","John haves dinner in a café on Saturdays.",
+  "I starts work at half past seven.","What time leaves Linda home?","Do you work in this town?",
+  "Susan go to bed late.","Did she be at school last week?","I've already done my homework.",
+  "We go to bed before midnight.","Maria has been a teacher since 1990.","What do you usually have for breakfast?",
+  "What time does he finishes work?","What time do Andy get up?","Does John studies English?",
+  "I have lunch in a restaurant in the week.","Lucy and Linda work for GE Money Bank.",
+  "I feeled excited before my holiday.","I didn't be at school yesterday.","Were they at home yesterday?",
+  "Is she your friend?","Did go they to the disco last night?","My best friend were upset this morning.",
+  "Did you go to London the month past?","I didn't went shopping yesterday.","I read this book a year ago.",
+  "Has you ever been to Spain?","I'm in my room on the Radford Hotel.","John hasn't never been to Spain.",
+  "I've been to Spain three times.","I sleep eight hours every day.","Oh, no! I've just cutten my finger!",
+  "Did you done your homework yet?","We have live here for 20 years.","Ann and Suzy have just arriven home.",
+  "We've known each other for a long time.","I have finished the homework at last."
+];
+
+const BTN_CORRECT_DEFAULT = 'background-color:#1E3A50;color:#ffffff;font-family:DM Sans,sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:5px;cursor:pointer;border:none;white-space:nowrap;';
+const BTN_CORRECT_ACTIVE  = 'background-color:#0B1825;color:#E8B86D;font-family:DM Sans,sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:5px;cursor:pointer;border:2px solid #E8B86D;white-space:nowrap;';
+const BTN_INCORRECT_DEFAULT = 'background-color:#B84018;color:#ffffff;font-family:DM Sans,sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:5px;cursor:pointer;border:none;white-space:nowrap;';
+const BTN_INCORRECT_ACTIVE  = 'background-color:#7a2a0e;color:#ffffff;font-family:DM Sans,sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:5px;cursor:pointer;border:2px solid #E8B86D;white-space:nowrap;';
+
+const state = {};
+const container = document.getElementById('items-container');
+
+sentences.forEach((s, i) => {
+  state[i] = { verdict: null, correction: '', dontknow: false };
+
+  const item = document.createElement('div');
+  item.className = 'gjt-item';
+  item.id = 'item-' + i;
+
+  const btnCorrect = document.createElement('button');
+  btnCorrect.type = 'button';
+  btnCorrect.className = 'gjt-btn-correct';
+  btnCorrect.textContent = 'Correto';
+  btnCorrect.style.cssText = BTN_CORRECT_DEFAULT;
+
+  const btnIncorrect = document.createElement('button');
+  btnIncorrect.type = 'button';
+  btnIncorrect.className = 'gjt-btn-incorrect';
+  btnIncorrect.textContent = 'Incorreto';
+  btnIncorrect.style.cssText = BTN_INCORRECT_DEFAULT;
+
+  const btnWrap = document.createElement('div');
+  btnWrap.className = 'gjt-buttons';
+  btnWrap.appendChild(btnCorrect);
+  btnWrap.appendChild(btnIncorrect);
+
+  const numEl = document.createElement('div');
+  numEl.className = 'gjt-num';
+  numEl.textContent = i + 1;
+
+  const sentEl = document.createElement('div');
+  sentEl.className = 'gjt-sentence';
+  sentEl.textContent = s;
+
+  const top = document.createElement('div');
+  top.className = 'gjt-item-top';
+  top.appendChild(numEl);
+  top.appendChild(sentEl);
+  top.appendChild(btnWrap);
+
+  const corrDiv = document.createElement('div');
+  corrDiv.className = 'gjt-correction';
+  corrDiv.id = 'correction-' + i;
+
+  const corrInput = document.createElement('input');
+  corrInput.type = 'text';
+  corrInput.placeholder = 'Escreva a versão correta aqui...';
+  corrInput.id = 'corr-input-' + i;
+
+  const dkLabel = document.createElement('label');
+  dkLabel.className = 'gjt-dontknow';
+  const dkBox = document.createElement('input');
+  dkBox.type = 'checkbox';
+  dkBox.id = 'dontknow-' + i;
+  const dkSpan = document.createElement('span');
+  dkSpan.textContent = 'Não sei como corrigir';
+  dkLabel.appendChild(dkBox);
+  dkLabel.appendChild(dkSpan);
+  corrDiv.appendChild(corrInput);
+  corrDiv.appendChild(dkLabel);
+
+  item.appendChild(top);
+  item.appendChild(corrDiv);
+  container.appendChild(item);
+
+  btnCorrect.addEventListener('click', () => setVerdict(i, 'correct'));
+  btnIncorrect.addEventListener('click', () => setVerdict(i, 'incorrect'));
+  corrInput.addEventListener('input', () => { state[i].correction = corrInput.value; });
+  dkBox.addEventListener('change', () => {
+    state[i].dontknow = dkBox.checked;
+    corrInput.disabled = dkBox.checked;
+    if (dkBox.checked) { corrInput.value = ''; state[i].correction = ''; }
+    updateProgress();
+  });
+});
+
+function setVerdict(i, v) {
+  state[i].verdict = v;
+  const item = document.getElementById('item-' + i);
+  const corrDiv = document.getElementById('correction-' + i);
+  const btnC = item.querySelectorAll('button')[0];
+  const btnI = item.querySelectorAll('button')[1];
+
+  if (v === 'correct') {
+    btnC.style.cssText = BTN_CORRECT_ACTIVE;
+    btnI.style.cssText = BTN_INCORRECT_DEFAULT;
+  } else {
+    btnI.style.cssText = BTN_INCORRECT_ACTIVE;
+    btnC.style.cssText = BTN_CORRECT_DEFAULT;
+  }
+
+  item.className = 'gjt-item judged-' + v;
+  if (v === 'incorrect') {
+    corrDiv.classList.add('visible');
+  } else {
+    corrDiv.classList.remove('visible');
+    state[i].correction = '';
+    state[i].dontknow = false;
+    document.getElementById('dontknow-' + i).checked = false;
+    document.getElementById('corr-input-' + i).value = '';
+    document.getElementById('corr-input-' + i).disabled = false;
+  }
+  updateProgress();
+}
+
+function countAnswered() {
+  return Object.values(state).filter(s => {
+    if (!s.verdict) return false;
+    if (s.verdict === 'incorrect') return s.dontknow || s.correction.trim().length > 0;
+    return true;
+  }).length;
+}
+
+function updateProgress() {
+  const n = countAnswered();
+  document.getElementById('progress-fill').style.width = (n / 40 * 100) + '%';
+  document.getElementById('progress-text').textContent = n + ' / 40';
+}
+
+document.getElementById('submit-btn').addEventListener('click', () => {
+  const name = document.getElementById('student-name').value.trim();
+  const errEl = document.getElementById('error-msg');
+  if (!name) { errEl.textContent = 'Por favor, escreva seu nome antes de continuar.'; errEl.style.display = 'block'; return; }
+  const unanswered = [];
+  sentences.forEach((_, i) => {
+    const s = state[i];
+    if (!s.verdict) { unanswered.push(i+1); return; }
+    if (s.verdict === 'incorrect' && !s.dontknow && !s.correction.trim()) unanswered.push(i+1);
+  });
+  if (unanswered.length > 0) {
+    errEl.textContent = 'Responda todas as questões antes de continuar. Pendentes: ' + unanswered.slice(0,5).join(', ') + (unanswered.length > 5 ? '...' : '') + '.';
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+  buildSummary(name);
+});
+
+function buildSummary(name) {
+  let nCorrect = 0, nIncorrect = 0, nDontknow = 0;
+  const rows = document.getElementById('summary-rows');
+  rows.innerHTML = '';
+  sentences.forEach((s, i) => {
+    const st = state[i];
+    if (st.verdict === 'correct') nCorrect++;
+    else { nIncorrect++; if (st.dontknow) nDontknow++; }
+    const row = document.createElement('div');
+    row.className = 'gjt-summary-row';
+    let rightHtml = '<div class="gjt-sum-right"><span class="gjt-sum-verdict ' + st.verdict + '">' + (st.verdict === 'correct' ? 'Correto' : 'Incorreto') + '</span>';
+    if (st.verdict === 'incorrect') {
+      if (st.dontknow) rightHtml += '<span class="gjt-sum-dontknow">Não sei corrigir</span>';
+      else rightHtml += '<span class="gjt-sum-correction">' + st.correction + '</span>';
+    }
+    rightHtml += '</div>';
+    row.innerHTML = '<span class="gjt-sum-num">' + (i+1) + '</span><span class="gjt-sum-orig">' + s + '</span>' + rightHtml;
+    rows.appendChild(row);
+  });
+  document.getElementById('stat-correct').textContent = nCorrect;
+  document.getElementById('stat-incorrect').textContent = nIncorrect;
+  document.getElementById('stat-dontknow').textContent = nDontknow;
+  const summary = document.getElementById('summary');
+  summary.classList.add('visible');
+  const exportBtn = document.getElementById('export-btn');
+  exportBtn.classList.add('visible');
+  exportBtn.style.cssText = 'display:inline-block;background-color:#B84018;color:#F5F0E8;font-family:DM Sans,sans-serif;font-size:13px;font-weight:500;padding:9px 20px;border-radius:6px;cursor:pointer;border:none;margin:0.75rem 1.25rem 1rem;';
+  summary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  exportBtn.onclick = () => exportPDF(name, nCorrect, nIncorrect, nDontknow);
+}
+
+function exportPDF(name, nCorrect, nIncorrect, nDontknow) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, margin = 18;
+  let y = 0;
+  doc.setFillColor(11, 24, 37); doc.rect(0, 0, W, 28, 'F');
+  doc.setFillColor(184, 64, 24); doc.rect(0, 28, W, 1.5, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(200, 145, 58);
+  doc.text('Error Correction Exercise', margin, 13);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(232, 184, 109);
+  doc.text('English Verb Structures', margin, 20);
+  y = 38;
+  doc.setFontSize(10); doc.setTextColor(58, 53, 48);
+  doc.setFont('helvetica', 'bold'); doc.text('Student: ', margin, y);
+  doc.setFont('helvetica', 'normal'); doc.text(name, margin + 18, y);
+  const today = new Date().toLocaleDateString('pt-BR');
+  doc.setFont('helvetica', 'bold'); doc.text('Date: ', 140, y);
+  doc.setFont('helvetica', 'normal'); doc.text(today, 152, y);
+  y += 8;
+  doc.setFillColor(208, 221, 232); doc.roundedRect(margin, y, W - margin*2, 14, 2, 2, 'F');
+  doc.setFontSize(9); doc.setTextColor(11, 24, 37); doc.setFont('helvetica', 'bold');
+  doc.text('Correct: ' + nCorrect, margin + 6, y + 9);
+  doc.text('Incorrect: ' + nIncorrect, margin + 42, y + 9);
+  doc.text("Don't know: " + nDontknow, margin + 86, y + 9);
+  y += 20; doc.setFontSize(8.5);
+  sentences.forEach((s, i) => {
+    const st = state[i];
+    if (y > 268) { doc.addPage(); y = 18; }
+    const numStr = String(i + 1).padStart(2, ' ');
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(st.verdict === 'correct' ? 17 : 184, st.verdict === 'correct' ? 32 : 64, st.verdict === 'correct' ? 48 : 24);
+    doc.text(numStr + '.', margin, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 53, 48);
+    const lines = doc.splitTextToSize(s, 110);
+    doc.text(lines, margin + 10, y);
+    const tag = st.verdict === 'correct' ? 'Correto' : 'Incorreto';
+    const tagColor = st.verdict === 'correct' ? [30, 58, 80] : [184, 64, 24];
+    doc.setFillColor(...tagColor); doc.roundedRect(145, y - 4, 22, 6, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(245, 240, 232);
+    doc.text(tag, 148.5, y);
+    if (st.verdict === 'incorrect') {
+      const corrText = st.dontknow ? 'Não sei corrigir' : st.correction;
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
+      doc.setTextColor(st.dontknow ? 100 : 11, st.dontknow ? 100 : 24, st.dontknow ? 100 : 37);
+      const corrLines = doc.splitTextToSize('→ ' + corrText, 100);
+      y += 5; doc.text(corrLines, margin + 10, y);
+      y += corrLines.length * 4.5;
+    } else { y += 7; }
+    doc.setFontSize(8.5);
+  });
+  y += 6;
+  if (y > 272) { doc.addPage(); y = 18; }
+  doc.setFillColor(11, 24, 37); doc.rect(margin, y, W - margin*2, 0.5, 'F');
+  y += 5; doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(184, 64, 24);
+  doc.text('Error Correction Exercise — English Verb Structures', margin, y);
+  const filename = 'ECE_' + name.replace(/\s+/g, '_') + '_' + today.replace(/\//g, '-') + '.pdf';
+  doc.save(filename);
+}
+</script>
+</body>
+</html>
